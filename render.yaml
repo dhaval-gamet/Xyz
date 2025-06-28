@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: groq-chatbot
+    name: groq-flask-api
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
