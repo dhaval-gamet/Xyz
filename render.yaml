@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: groq-flask-api
+    name: xyz
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
