@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 import requests
 from dotenv import load_dotenv
 
 app = Flask(__name__)
 load_dotenv()
+CORS(app) 
 
 API_KEY = os.getenv("GROQ_API_KEY")
 
