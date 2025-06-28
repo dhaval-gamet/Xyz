@@ -1,44 +1,41 @@
 from flask import Flask, request, jsonify
-import requests
 import os
+import requests
 from dotenv import load_dotenv
 
+app = Flask(__name__)
 load_dotenv()
+
 API_KEY = os.getenv("GROQ_API_KEY")
 
-app = Flask(__name__)
-
-@app.route('/')
+@app.route("/", methods=["GET"])
 def home():
-    return "✅ Groq Flask API is running!"
+    return "🧠 Groq Chatbot API is running!"
 
-@app.route('/chat', methods=['POST'])
+@app.route("/chat", methods=["POST"])
 def chat():
-    data = request.get_json()
+    user_msg = request.json.get("message", "")
 
-    user_input = data.get("message")
-    if not user_input:
-        return jsonify({"error": "Missing 'message' in JSON body"}), 400
+    if not user_msg:
+        return jsonify({"error": "No message provided"}), 400
 
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json"
     }
 
-    payload = {
+    data = {
         "model": "llama3-8b-8192",
-        "messages": [
-            {"role": "user", "content": user_input}
-        ]
+        "messages": [{"role": "user", "content": user_msg}]
     }
 
-    response = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload)
+    res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=data)
 
-    if response.status_code == 200:
-        reply = response.json()["choices"][0]["message"]["content"]
+    if res.status_code == 200:
+        reply = res.json()["choices"][0]["message"]["content"]
         return jsonify({"reply": reply.strip()})
     else:
-        return jsonify({"error": "Groq API Error", "details": response.text}), response.status_code
+        return jsonify({"error": "Groq API failed", "details": res.text}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=10000)
