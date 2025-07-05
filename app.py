@@ -16,9 +16,23 @@ def home():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    user_msg = request.json.get("message", "")
+    data = request.json
+    messages = data.get("messages")
+    user_msg = data.get("message", "")
 
-    if not user_msg:
+    if messages:
+        # अगर messages (multi-turn) है तो उसे Groq को भेजो
+        api_payload = {
+            "model": "llama3-8b-8192",
+            "messages": messages
+        }
+    elif user_msg:
+        # single message (single-turn)
+        api_payload = {
+            "model": "llama3-8b-8192",
+            "messages": [{"role": "user", "content": user_msg}]
+        }
+    else:
         return jsonify({"error": "No message provided"}), 400
 
     headers = {
@@ -26,18 +40,20 @@ def chat():
         "Content-Type": "application/json"
     }
 
-    data = {
-        "model": "llama3-8b-8192",
-        "messages": [{"role": "user", "content": user_msg}]
-    }
-
-    res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=data)
-
-    if res.status_code == 200:
+    try:
+        res = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers,
+            json=api_payload,
+            timeout=20
+        )
+        res.raise_for_status()
         reply = res.json()["choices"][0]["message"]["content"]
         return jsonify({"reply": reply.strip()})
-    else:
-        return jsonify({"error": "Groq API failed", "details": res.text}), 500
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "Groq API timeout"}), 504
+    except Exception as e:
+        return jsonify({"error": "Groq API failed", "details": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=10000)
